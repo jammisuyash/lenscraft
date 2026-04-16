@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LensCraft — Camera Rentals</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --glass: rgba(255,255,255,0.08);
+    --glass-border: rgba(255,255,255,0.15);
+    --glass-strong: rgba(255,255,255,0.14);
+    --neo-bg: #1a1a2e;
+    --neo-shadow-dark: #0d0d1a;
+    --neo-shadow-light: #272742;
+    --accent: #f4a623;
+    --accent2: #e8562a;
+    --gold: #ffd166;
+    --text: #f0f0ff;
+    --text-muted: rgba(240,240,255,0.55);
+    --surface: #16213e;
+    --card-bg: rgba(22,33,62,0.7);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'DM Sans',sans-serif;
+    background: #0f0c1d;
+    color:var(--text);
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+
+  /* ===== BACKGROUND ===== */
+  .bg-canvas{
+    position:fixed;inset:0;z-index:0;
+    background: radial-gradient(ellipse at 20% 20%, #1a0a3e 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, #0d2040 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 50%, #0f0c1d 0%, #080612 100%);
+  }
+  .bg-orb{
+    position:fixed;border-radius:50%;filter:blur(80px);opacity:0.25;pointer-events:none;z-index:0;
+    animation:orbFloat 12s ease-in-out infinite alternate;
+  }
+  .orb1{width:500px;height:500px;background:#5e17eb;top:-200px;left:-150px;}
+  .orb2{width:400px;height:400px;background:#f4a623;bottom:-150px;right:-100px;animation-delay:-6s;}
+  .orb3{width:300px;height:300px;background:#e8562a;top:40%;left:60%;animation-delay:-3s;}
+  @keyframes orbFloat{from{transform:translate(0,0) scale(1);}to{transform:translate(40px,30px) scale(1.1);}}
+
+  /* ===== LAYOUT ===== */
+  .page{position:relative;z-index:1;min-height:100vh;display:none;}
+  .page.active{display:block;}
+
+  /* ===== NAV ===== */
+  nav{
+    position:fixed;top:0;left:0;right:0;z-index:100;
+    padding:1rem 2.5rem;
+    display:flex;justify-content:space-between;align-items:center;
+    background:rgba(10,8,25,0.6);
+    backdrop-filter:blur(24px);
+    border-bottom:1px solid var(--glass-border);
+  }
+  .nav-logo{
+    font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;
+    background:linear-gradient(135deg,#ffd166,#f4a623);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    cursor:pointer;
+  }
+  .nav-links{display:flex;gap:2rem;}
+  .nav-link{
+    font-size:0.9rem;color:var(--text-muted);cursor:pointer;
+    transition:color 0.3s;letter-spacing:0.05em;font-weight:500;
+  }
+  .nav-link:hover{color:var(--gold);}
+
+  /* ===== GLASS CARD ===== */
+  .glass{
+    background:var(--glass-strong);
+    backdrop-filter:blur(20px);
+    border:1px solid var(--glass-border);
+    border-radius:24px;
+  }
+  .neo{
+    background: var(--surface);
+    border-radius:20px;
+    box-shadow: 8px 8px 20px var(--neo-shadow-dark), -4px -4px 16px var(--neo-shadow-light);
+  }
+
+  /* ===== BUTTONS ===== */
+  .btn-primary{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:0.85rem 2.2rem;
+    background:linear-gradient(135deg,#f4a623,#e8562a);
+    color:#fff;font-weight:600;font-size:0.95rem;
+    border:none;border-radius:50px;cursor:pointer;
+    font-family:'DM Sans',sans-serif;letter-spacing:0.03em;
+    transition:transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 8px 30px rgba(244,166,35,0.35);
+  }
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(244,166,35,0.5);}
+  .btn-primary:active{transform:translateY(0);}
+  .btn-ghost{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:0.85rem 2.2rem;
+    background:transparent;
+    color:var(--text);font-weight:500;font-size:0.95rem;
+    border:1px solid var(--glass-border);border-radius:50px;cursor:pointer;
+    font-family:'DM Sans',sans-serif;
+    transition:background 0.2s, border-color 0.2s;
+  }
+  .btn-ghost:hover{background:var(--glass);border-color:var(--gold);}
+
+  /* ===== INPUT ===== */
+  .input-group{margin-bottom:1.2rem;}
+  .input-group label{display:block;font-size:0.82rem;color:var(--text-muted);margin-bottom:6px;letter-spacing:0.06em;text-transform:uppercase;font-weight:500;}
+  .input-group input{
+    width:100%;padding:0.85rem 1.2rem;
+    background:rgba(255,255,255,0.06);
+    border:1px solid var(--glass-border);border-radius:12px;
+    color:var(--text);font-size:0.95rem;font-family:'DM Sans',sans-serif;
+    transition:border-color 0.25s, background 0.25s;outline:none;
+  }
+  .input-group input:focus{border-color:var(--accent);background:rgba(255,255,255,0.1);}
+  .input-group input::placeholder{color:rgba(240,240,255,0.3);}
+  .error-msg{color:#ff6b6b;font-size:0.78rem;margin-top:4px;display:none;}
+
+  /* ===== ANIMATIONS ===== */
+  @keyframes fadeUp{from{opacity:0;transform:translateY(30px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+  @keyframes scaleIn{from{opacity:0;transform:scale(0.88);}to{opacity:1;transform:scale(1);}}
+  @keyframes shimmer{0%{background-position:-200% center;}100%{background-position:200% center;}}
+  @keyframes floatCard{0%,100%{transform:translateY(0) rotateX(0deg);}50%{transform:translateY(-12px) rotateX(2deg);}}
+  @keyframes spin3d{from{transform:rotateY(0deg);}to{transform:rotateY(360deg);}}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(244,166,35,0.4);}50%{box-shadow:0 0 0 16px rgba(244,166,35,0);}}
+  .anim-fadeup{animation:fadeUp 0.7s ease both;}
+  .anim-scalein{animation:scaleIn 0.5s ease both;}
+  .d1{animation-delay:0.1s;} .d2{animation-delay:0.2s;} .d3{animation-delay:0.3s;} .d4{animation-delay:0.4s;}
+
+  /* ===== HERO / HOME ===== */
+  #page-home{
+    padding-top:100px;
+    min-height:100vh;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding-bottom:4rem;
+  }
+  .hero-badge{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:6px 16px;
+    background:rgba(244,166,35,0.12);border:1px solid rgba(244,166,35,0.3);
+    border-radius:50px;font-size:0.8rem;color:var(--gold);margin-bottom:1.5rem;
+    animation:fadeUp 0.6s ease;
+  }
+  .badge-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse 2s infinite;}
+  .hero-title{
+    font-family:'Syne',sans-serif;font-size:clamp(2.8rem,6vw,5.5rem);font-weight:800;line-height:1.05;
+    margin-bottom:1.2rem;animation:fadeUp 0.7s 0.1s ease both;
+    background:linear-gradient(135deg,#ffffff 0%,#ffd166 50%,#f4a623 100%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  .hero-sub{
+    font-size:1.15rem;color:var(--text-muted);max-width:560px;line-height:1.7;
+    margin-bottom:2.5rem;animation:fadeUp 0.7s 0.2s ease both;
+  }
+  .hero-cta{animation:fadeUp 0.7s 0.3s ease both;display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;}
+  .hero-cameras{
+    margin-top:4rem;
+    display:flex;gap:2rem;justify-content:center;flex-wrap:wrap;
+    animation:fadeUp 0.7s 0.5s ease both;
+  }
+  .camera-float{
+    perspective:800px;
+  }
+  .camera-card-preview{
+    width:200px;height:260px;
+    background:var(--glass-strong);
+    backdrop-filter:blur(20px);
+    border:1px solid var(--glass-border);
+    border-radius:20px;padding:1.2rem;
+    display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+    animation:floatCard 5s ease-in-out infinite;
+    transition:transform 0.3s;cursor:pointer;
+    box-shadow:0 20px 60px rgba(0,0,0,0.4);
+  }
+  .camera-card-preview:nth-child(1){animation-delay:0s;}
+  .camera-card-preview:nth-child(2){animation-delay:1.5s;}
+  .camera-card-preview:nth-child(3){animation-delay:3s;}
+  .camera-card-preview:hover{transform:translateY(-8px) rotateY(5deg) scale(1.04);}
+  .cam-img{width:120px;height:100px;object-fit:contain;filter:drop-shadow(0 8px 20px rgba(244,166,35,0.3));}
+  .cam-tag{font-size:0.72rem;color:var(--gold);font-weight:600;letter-spacing:0.08em;text-transform:uppercase;}
+  .cam-name{font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;text-align:center;}
+  .cam-price{
+    font-size:0.8rem;color:var(--text-muted);
+    background:rgba(244,166,35,0.1);border:1px solid rgba(244,166,35,0.2);
+    padding:4px 10px;border-radius:20px;
+  }
+
+  /* ===== LOGIN PAGE ===== */
+  #page-login{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    padding:7rem 1.5rem 3rem;
+  }
+  .login-wrap{display:flex;gap:3rem;align-items:center;max-width:960px;width:100%;flex-wrap:wrap;justify-content:center;}
+  .login-left{flex:1;min-width:260px;}
+  .login-left h2{font-family:'Syne',sans-serif;font-size:2.4rem;font-weight:800;line-height:1.2;margin-bottom:1rem;}
+  .login-left p{color:var(--text-muted);line-height:1.7;margin-bottom:1.5rem;}
+  .perks{display:flex;flex-direction:column;gap:0.7rem;}
+  .perk{display:flex;align-items:center;gap:10px;font-size:0.9rem;color:var(--text-muted);}
+  .perk-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;}
+  .login-form-card{
+    flex:1;min-width:320px;max-width:420px;
+    padding:2.2rem 2rem;
+    animation:scaleIn 0.5s ease;
+  }
+  .form-title{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:700;margin-bottom:0.4rem;}
+  .form-sub{font-size:0.85rem;color:var(--text-muted);margin-bottom:1.8rem;}
+  .tabs{display:flex;gap:0;margin-bottom:1.8rem;background:rgba(255,255,255,0.05);border-radius:10px;padding:4px;}
+  .tab{flex:1;padding:8px;text-align:center;border-radius:8px;cursor:pointer;font-size:0.88rem;font-weight:500;color:var(--text-muted);transition:all 0.3s;}
+  .tab.active{background:linear-gradient(135deg,#f4a623,#e8562a);color:#fff;}
+
+  /* ===== QUIZ ===== */
+  #page-quiz{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:7rem 1.5rem 3rem;}
+  .quiz-container{max-width:680px;width:100%;animation:scaleIn 0.5s ease;}
+  .quiz-header{text-align:center;margin-bottom:2.5rem;}
+  .quiz-step{font-size:0.8rem;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.5rem;}
+  .quiz-title{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;}
+  .progress-bar-wrap{height:4px;background:rgba(255,255,255,0.1);border-radius:10px;margin-bottom:2.5rem;overflow:hidden;}
+  .progress-bar{height:100%;background:linear-gradient(90deg,#f4a623,#e8562a);border-radius:10px;transition:width 0.5s ease;}
+  .question-card{padding:2.5rem;margin-bottom:1.5rem;}
+  .question-text{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:700;margin-bottom:1.5rem;line-height:1.4;}
+  .options-grid{display:flex;flex-direction:column;gap:0.8rem;}
+  .option-btn{
+    padding:1rem 1.5rem;
+    background:rgba(255,255,255,0.05);
+    border:1px solid var(--glass-border);border-radius:14px;
+    color:var(--text);font-size:0.95rem;font-family:'DM Sans',sans-serif;
+    cursor:pointer;text-align:left;transition:all 0.25s;
+    display:flex;align-items:center;gap:12px;font-weight:400;
+  }
+  .option-btn:hover{background:rgba(244,166,35,0.1);border-color:rgba(244,166,35,0.4);}
+  .option-btn.selected{background:rgba(244,166,35,0.15);border-color:var(--accent);color:#fff;}
+  .option-btn.multi-selected{background:rgba(244,166,35,0.15);border-color:var(--accent);color:#fff;}
+  .option-icon{width:32px;height:32px;border-radius:8px;background:rgba(244,166,35,0.1);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+  .quiz-nav{display:flex;justify-content:space-between;align-items:center;}
+  .quiz-hint{font-size:0.8rem;color:var(--text-muted);}
+
+  /* ===== RESULT PAGE ===== */
+  #page-result{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:7rem 1.5rem 3rem;}
+  .result-container{max-width:900px;width:100%;}
+  .result-header{text-align:center;margin-bottom:3rem;animation:fadeUp 0.6s ease;}
+  .result-label{
+    display:inline-block;padding:8px 20px;
+    background:linear-gradient(135deg,rgba(244,166,35,0.2),rgba(232,86,42,0.2));
+    border:1px solid rgba(244,166,35,0.3);border-radius:50px;
+    font-size:0.8rem;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:1rem;
+  }
+  .result-header h2{font-family:'Syne',sans-serif;font-size:2.5rem;font-weight:800;}
+  .result-card{
+    display:flex;gap:3rem;align-items:center;padding:3rem;
+    animation:scaleIn 0.6s 0.2s ease both;flex-wrap:wrap;
+  }
+  .result-img-wrap{flex-shrink:0;text-align:center;animation:floatCard 6s ease-in-out infinite;}
+  .result-camera-img{
+    width:240px;height:200px;object-fit:contain;
+    filter:drop-shadow(0 20px 40px rgba(244,166,35,0.4));
+  }
+  .result-info{flex:1;min-width:260px;}
+  .result-camera-name{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;margin-bottom:0.4rem;line-height:1.2;}
+  .result-tagline{color:var(--gold);font-size:0.9rem;margin-bottom:1.5rem;font-weight:500;}
+  .result-reasons{display:flex;flex-direction:column;gap:0.8rem;margin-bottom:2rem;}
+  .reason{
+    display:flex;align-items:flex-start;gap:12px;
+    padding:0.9rem 1.2rem;
+    background:rgba(255,255,255,0.05);border-radius:12px;
+    border-left:3px solid var(--accent);font-size:0.9rem;line-height:1.5;
+  }
+  .reason-num{
+    width:24px;height:24px;border-radius:50%;
+    background:linear-gradient(135deg,#f4a623,#e8562a);
+    display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;
+    flex-shrink:0;margin-top:1px;
+  }
+  .result-price{
+    display:inline-block;padding:10px 20px;
+    background:rgba(244,166,35,0.12);border:1px solid rgba(244,166,35,0.25);border-radius:12px;
+    font-size:0.9rem;color:var(--gold);margin-bottom:1.5rem;
+  }
+  .btn-book{
+    background:linear-gradient(135deg,#f4a623,#e8562a);
+    color:#fff;border:none;padding:1rem 2.5rem;border-radius:50px;
+    font-size:1rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;
+    box-shadow:0 8px 30px rgba(244,166,35,0.4);
+    transition:transform 0.2s,box-shadow 0.2s;
+    animation:pulse 3s infinite;
+  }
+  .btn-book:hover{transform:translateY(-3px);box-shadow:0 16px 40px rgba(244,166,35,0.5);}
+
+  /* ===== ABOUT PAGE ===== */
+  #page-about{min-height:100vh;padding:7rem 2rem 4rem;}
+  .about-container{max-width:1100px;margin:0 auto;}
+  .about-hero{text-align:center;margin-bottom:4rem;animation:fadeUp 0.6s ease;}
+  .about-hero h2{font-family:'Syne',sans-serif;font-size:3rem;font-weight:800;margin-bottom:1rem;}
+  .about-hero p{color:var(--text-muted);font-size:1.05rem;max-width:600px;margin:0 auto;line-height:1.7;}
+  .about-mission{
+    padding:2.5rem;margin-bottom:3rem;
+    animation:fadeUp 0.6s 0.2s ease both;
+  }
+  .about-mission h3{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:700;margin-bottom:1rem;color:var(--gold);}
+  .about-mission p{color:var(--text-muted);line-height:1.8;}
+  .team-grid{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;
+  }
+  .team-card{
+    padding:1.8rem;animation:fadeUp 0.6s ease both;cursor:default;
+    transition:transform 0.3s;
+  }
+  .team-card:hover{transform:translateY(-6px);}
+  .team-avatar{
+    width:64px;height:64px;border-radius:16px;
+    background:linear-gradient(135deg,#f4a623,#e8562a);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;
+    margin-bottom:1rem;
+    box-shadow:0 8px 24px rgba(244,166,35,0.3);
+  }
+  .team-name{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:3px;}
+  .team-role{font-size:0.82rem;color:var(--gold);font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:0.8rem;}
+  .team-desc{font-size:0.88rem;color:var(--text-muted);line-height:1.6;}
+
+  /* ===== TOAST ===== */
+  .toast{
+    position:fixed;bottom:2rem;right:2rem;z-index:999;
+    background:linear-gradient(135deg,rgba(30,30,60,0.95),rgba(20,20,45,0.95));
+    backdrop-filter:blur(20px);
+    border:1px solid rgba(244,166,35,0.3);border-radius:16px;
+    padding:1rem 1.5rem;font-size:0.9rem;color:var(--text);
+    box-shadow:0 16px 40px rgba(0,0,0,0.5);
+    transform:translateY(100px);opacity:0;transition:all 0.4s ease;
+    max-width:300px;
+  }
+  .toast.show{transform:translateY(0);opacity:1;}
+  .toast-title{font-weight:600;color:var(--gold);margin-bottom:3px;}
+
+  /* ===== MODAL ===== */
+  .modal-overlay{
+    position:fixed;inset:0;z-index:200;
+    background:rgba(5,3,15,0.85);backdrop-filter:blur(8px);
+    display:flex;align-items:center;justify-content:center;padding:1rem;
+    opacity:0;pointer-events:none;transition:opacity 0.3s;
+  }
+  .modal-overlay.open{opacity:1;pointer-events:all;}
+  .modal-box{
+    background:rgba(16,12,35,0.98);
+    border:1px solid var(--glass-border);border-radius:24px;
+    padding:2.5rem;max-width:440px;width:100%;
+    transform:scale(0.9);transition:transform 0.3s;text-align:center;
+  }
+  .modal-overlay.open .modal-box{transform:scale(1);}
+  .modal-icon{font-size:3rem;margin-bottom:1rem;}
+  .modal-title{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:0.5rem;}
+  .modal-text{color:var(--text-muted);margin-bottom:1.5rem;line-height:1.6;}
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar{width:6px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:rgba(244,166,35,0.3);border-radius:10px;}
+
+  /* shimmer text */
+  .shimmer-text{
+    background:linear-gradient(90deg,var(--text) 0%,var(--gold) 50%,var(--text) 100%);
+    background-size:200% auto;
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    animation:shimmer 3s linear infinite;
+  }
+
+  @media(max-width:600px){
+    nav{padding:1rem 1.2rem;}
+    .nav-links{gap:1rem;}
+    .hero-cameras{flex-direction:column;align-items:center;}
+    .camera-card-preview{width:170px;height:220px;}
+    .login-wrap{flex-direction:column;}
+    .result-card{flex-direction:column;align-items:center;text-align:center;}
+    .reason{text-align:left;}
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-canvas"></div>
+<div class="bg-orb orb1"></div>
+<div class="bg-orb orb2"></div>
+<div class="bg-orb orb3"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo" onclick="showPage('home')">LensCraft</div>
+  <div class="nav-links">
+    <span class="nav-link" onclick="showPage('home')">Home</span>
+    <span class="nav-link" onclick="requireLogin()">Rent Now</span>
+    <span class="nav-link" onclick="showPage('about')">About Us</span>
+    <span id="nav-user" class="nav-link" style="display:none;color:var(--gold);"></span>
+    <span id="nav-logout" class="nav-link" style="display:none;" onclick="logout()">Logout</span>
+  </div>
+</nav>
+
+<!-- ===================== HOME PAGE ===================== -->
+<div id="page-home" class="page active">
+  <div style="max-width:900px;margin:0 auto;padding:0 1.5rem;">
+    <div class="hero-badge"><span class="badge-dot"></span> India's smartest camera rental</div>
+    <h1 class="hero-title">Capture Every<br>Moment Perfectly</h1>
+    <p class="hero-sub">Take our AI-powered quiz and get a personalized camera recommendation tailored to your needs, experience, and budget.</p>
+    <div class="hero-cta">
+      <button class="btn-primary" onclick="requireLogin()">✦ Find My Camera</button>
+      <button class="btn-ghost" onclick="showPage('about')">Meet the Team</button>
+    </div>
+    <div class="hero-cameras">
+      <div class="camera-float">
+        <div class="camera-card-preview" onclick="requireLogin()">
+          <span class="cam-tag">Popular</span>
+          <img class="cam-img" src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=200&auto=format&fit=crop" alt="Sony Camera" onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'120\' height=\'100\'><rect fill=\'%23333\' width=\'120\' height=\'100\' rx=\'8\'/><text fill=\'%23aaa\' x=\'60\' y=\'55\' text-anchor=\'middle\' font-size=\'12\'>Sony ZV-E10</text></svg>'">
+          <div class="cam-name">Sony ZV-E10</div>
+          <div class="cam-price">₹800 / day</div>
+        </div>
+      </div>
+      <div class="camera-float">
+        <div class="camera-card-preview" onclick="requireLogin()">
+          <span class="cam-tag">Best Value</span>
+          <img class="cam-img" src="https://images.unsplash.com/photo-1584038877214-01c7e32d6eae?w=200&auto=format&fit=crop" alt="Canon Camera" onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'120\' height=\'100\'><rect fill=\'%23333\' width=\'120\' height=\'100\' rx=\'8\'/><text fill=\'%23aaa\' x=\'60\' y=\'55\' text-anchor=\'middle\' font-size=\'12\'>Canon 1500D</text></svg>'">
+          <div class="cam-name">Canon EOS 1500D</div>
+          <div class="cam-price">₹400 / day</div>
+        </div>
+      </div>
+      <div class="camera-float">
+        <div class="camera-card-preview" onclick="requireLogin()">
+          <span class="cam-tag">Pro Pick</span>
+          <img class="cam-img" src="https://images.unsplash.com/photo-1607462109225-6b64ae2dd3cb?w=200&auto=format&fit=crop" alt="Sony A7" onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'120\' height=\'100\'><rect fill=\'%23333\' width=\'120\' height=\'100\' rx=\'8\'/><text fill=\'%23aaa\' x=\'60\' y=\'55\' text-anchor=\'middle\' font-size=\'12\'>Sony A7 III</text></svg>'">
+          <div class="cam-name">Sony A7 III</div>
+          <div class="cam-price">₹1800 / day</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== LOGIN PAGE ===================== -->
+<div id="page-login" class="page">
+  <div class="login-wrap">
+    <div class="login-left anim-fadeup">
+      <h2>Rent smarter.<br><span class="shimmer-text">Shoot better.</span></h2>
+      <p>Join thousands of creators who rent professional cameras at unbeatable prices. Fill in your details to get started.</p>
+      <div class="perks">
+        <div class="perk"><div class="perk-dot"></div>AI-powered personalized recommendations</div>
+        <div class="perk"><div class="perk-dot"></div>Same-day delivery in Hyderabad</div>
+        <div class="perk"><div class="perk-dot"></div>₹200/day starting — any skill level</div>
+        <div class="perk"><div class="perk-dot"></div>Damage protection included</div>
+      </div>
+    </div>
+    <div class="login-form-card glass anim-scalein">
+      <div class="form-title">Get Started</div>
+      <div class="form-sub">Create your account in seconds</div>
+      <div class="tabs">
+        <div class="tab active" id="tab-signup" onclick="switchTab('signup')">Sign Up</div>
+        <div class="tab" id="tab-login" onclick="switchTab('login')">Login</div>
+      </div>
+
+      <!-- SIGNUP FORM -->
+      <div id="form-signup">
+        <div class="input-group">
+          <label>Full Name</label>
+          <input type="text" id="reg-name" placeholder="Ravi Kumar">
+          <div class="error-msg" id="err-name">Please enter your name</div>
+        </div>
+        <div class="input-group">
+          <label>Email Address</label>
+          <input type="email" id="reg-email" placeholder="ravi@email.com">
+          <div class="error-msg" id="err-email">Please enter a valid email</div>
+        </div>
+        <div class="input-group">
+          <label>Phone Number</label>
+          <input type="tel" id="reg-phone" placeholder="9876543210" maxlength="10">
+          <div class="error-msg" id="err-phone">Enter a valid 10-digit number</div>
+        </div>
+        <div class="input-group">
+          <label>Aadhaar Number</label>
+          <input type="text" id="reg-aadhaar" placeholder="XXXX XXXX XXXX" maxlength="14">
+          <div class="error-msg" id="err-aadhaar">Enter a valid 12-digit Aadhaar</div>
+        </div>
+        <button class="btn-primary" style="width:100%;justify-content:center;" onclick="doSignup()">Create Account & Continue →</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <div id="form-login" style="display:none;">
+        <div class="input-group">
+          <label>Email Address</label>
+          <input type="email" id="login-email" placeholder="ravi@email.com">
+        </div>
+        <div class="input-group">
+          <label>Phone Number</label>
+          <input type="tel" id="login-phone" placeholder="9876543210">
+        </div>
+        <button class="btn-primary" style="width:100%;justify-content:center;" onclick="doLogin()">Login & Continue →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== QUIZ PAGE ===================== -->
+<div id="page-quiz" class="page">
+  <div class="quiz-container">
+    <div class="quiz-header">
+      <div class="quiz-step" id="quiz-step-label">Question 1 of 5</div>
+      <h2 class="quiz-title">Find Your Perfect Camera</h2>
+    </div>
+    <div class="progress-bar-wrap"><div class="progress-bar" id="quiz-progress" style="width:20%"></div></div>
+    <div class="question-card glass" id="question-card">
+      <div class="question-text" id="q-text"></div>
+      <div class="options-grid" id="q-options"></div>
+    </div>
+    <div class="quiz-nav">
+      <button class="btn-ghost" id="btn-back" onclick="quizBack()" style="visibility:hidden;">← Back</button>
+      <span class="quiz-hint" id="quiz-hint"></span>
+      <button class="btn-primary" id="btn-next" onclick="quizNext()">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== RESULT PAGE ===================== -->
+<div id="page-result" class="page">
+  <div class="result-container">
+    <div class="result-header">
+      <div class="result-label">✦ Your Personalized Match</div>
+      <h2>Recommended Camera for You</h2>
+    </div>
+    <div class="result-card glass">
+      <div class="result-img-wrap">
+        <img class="result-camera-img" id="result-img" src="" alt="Camera">
+      </div>
+      <div class="result-info">
+        <div class="result-camera-name" id="result-name"></div>
+        <div class="result-tagline" id="result-tagline"></div>
+        <div class="result-price" id="result-price"></div>
+        <div class="result-reasons" id="result-reasons"></div>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+          <button class="btn-book" onclick="bookNow()">📷 Book Now</button>
+          <button class="btn-ghost" onclick="showPage('quiz'); startQuiz();">Retake Quiz</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== ABOUT PAGE ===================== -->
+<div id="page-about" class="page">
+  <div class="about-container">
+    <div class="about-hero">
+      <div class="result-label">✦ Who We Are</div>
+      <h2>Built with passion,<br><span class="shimmer-text">by creators for creators.</span></h2>
+      <p>LensCraft was born from a simple idea — great cameras shouldn't be out of reach. We're a student team from Hyderabad making professional photography accessible to everyone.</p>
+    </div>
+    <div class="about-mission glass">
+      <h3>Our Mission</h3>
+      <p>We believe every story deserves to be captured beautifully. LensCraft combines smart technology with an extensive camera inventory to match each renter with their ideal camera — whether you're a first-time student or a seasoned filmmaker. Our guided quiz system ensures you never rent the wrong camera again. Built entirely on the frontend, our platform demonstrates how intelligent UX design can replace complex backend logic.</p>
+    </div>
+    <div class="team-grid" style="margin-top:2.5rem;">
+      <div class="team-card glass d1">
+        <div class="team-avatar">S</div>
+        <div class="team-name">Sathwik</div>
+        <div class="team-role">Project Lead</div>
+        <div class="team-desc">Drives the vision from concept to delivery. Coordinates sprints, manages timelines, and ensures the team stays aligned with user goals and project milestones.</div>
+      </div>
+      <div class="team-card glass d2">
+        <div class="team-avatar" style="background:linear-gradient(135deg,#5e17eb,#9b59b6);">C</div>
+        <div class="team-name">Charan</div>
+        <div class="team-role">Frontend Developer</div>
+        <div class="team-desc">Architects the core interface — building interactive components, managing page transitions, and ensuring the application logic runs flawlessly across all devices.</div>
+      </div>
+      <div class="team-card glass d3">
+        <div class="team-avatar" style="background:linear-gradient(135deg,#11998e,#38ef7d);">S</div>
+        <div class="team-name">Sarayu</div>
+        <div class="team-role">Frontend Developer</div>
+        <div class="team-desc">Crafts the visual layout and spacing system. Ensures the design is consistent, accessible, and responsive — making every screen feel intentional and polished.</div>
+      </div>
+      <div class="team-card glass d1">
+        <div class="team-avatar" style="background:linear-gradient(135deg,#e8562a,#ff9a44);">M</div>
+        <div class="team-name">Manohar</div>
+        <div class="team-role">Frontend Developer</div>
+        <div class="team-desc">Focuses on feature enhancement and performance. Improves animations, refines interactions, and continuously iterates based on testing and user feedback.</div>
+      </div>
+      <div class="team-card glass d2">
+        <div class="team-avatar" style="background:linear-gradient(135deg,#fc466b,#3f5efb);">S</div>
+        <div class="team-name">Sanjana</div>
+        <div class="team-role">UI/UX Designer</div>
+        <div class="team-desc">The creative soul of LensCraft. Defines the visual language — from color and typography to micro-interactions — creating an experience that feels intuitive and delightful.</div>
+      </div>
+      <div class="team-card glass d3">
+        <div class="team-avatar" style="background:linear-gradient(135deg,#43e97b,#38f9d7);">K</div>
+        <div class="team-name">Karthik</div>
+        <div class="team-role">Marketing & Presentation</div>
+        <div class="team-desc">Shapes how LensCraft is perceived. Handles pitch decks, demo presentations, and promotional content — translating technical work into compelling stories for any audience.</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:3rem;padding-bottom:2rem;">
+      <button class="btn-primary" onclick="requireLogin()">✦ Try the Quiz</button>
+    </div>
+  </div>
+</div>
+
+<!-- BOOK MODAL -->
+<div class="modal-overlay" id="book-modal">
+  <div class="modal-box">
+    <div class="modal-icon">🎉</div>
+    <div class="modal-title">Booking Confirmed!</div>
+    <div class="modal-text">Your camera has been reserved. Our team will contact you within 2 hours to confirm delivery details. Happy shooting!</div>
+    <button class="btn-primary" style="width:100%;justify-content:center;" onclick="closeModal('book-modal');showPage('home')">Back to Home</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <div class="toast-title" id="toast-title"></div>
+  <div id="toast-body"></div>
+</div>
+
+<script>
+// ===== STATE =====
+let currentUser = null;
+let quizAnswers = {};
+let currentQ = 0;
+
+const questions = [
+  {
+    q: "What will you mainly use the camera for?",
+    type: "single",
+    icons: ["✈️","🎬","💍","🎥","🎓"],
+    options: ["Travel photography","YouTube / Vlogging","Events (weddings, parties)","Short films / filmmaking","College / personal projects"]
+  },
+  {
+    q: "What is your experience level?",
+    type: "single",
+    icons: ["🌱","⚡","🏆"],
+    options: ["Beginner","Intermediate","Advanced"]
+  },
+  {
+    q: "What do you want to capture more?",
+    type: "single",
+    icons: ["📸","🎬","✨"],
+    options: ["Photos","Videos","Both"]
+  },
+  {
+    q: "What features matter most to you?",
+    type: "multi",
+    hint: "Select all that apply",
+    icons: ["📷","🎥","⚖️","🔋","🎯"],
+    options: ["High photo quality","4K video","Lightweight","Long battery","Good autofocus"]
+  },
+  {
+    q: "What is your rental budget per day?",
+    type: "single",
+    icons: ["💰","💵","💳","💎"],
+    options: ["₹200–₹500","₹500–₹1000","₹1000–₹2000","Above ₹2000"]
+  }
+];
+
+// ===== CAMERA DATA =====
+const cameras = {
+  "Sony ZV-E10": {
+    tagline: "The ultimate vlogging companion",
+    price: "₹700–₹900 / day",
+    img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400&auto=format&fit=crop",
+    reasons: [
+      "Designed specifically for vloggers with a front-flip screen for self-recording",
+      "Excellent 4K video with Sony's advanced subject-tracking autofocus",
+      "Compact and lightweight — perfect for on-the-go content creation"
+    ]
+  },
+  "Canon EOS 1500D": {
+    tagline: "The perfect first DSLR for beginners",
+    price: "₹350–₹500 / day",
+    img: "https://images.unsplash.com/photo-1584038877214-01c7e32d6eae?w=400&auto=format&fit=crop",
+    reasons: [
+      "Beginner-friendly with guided shooting modes and a large 24.1MP sensor",
+      "Long battery life — up to 500 shots per charge",
+      "Affordable rental cost with exceptional image quality for the price"
+    ]
+  },
+  "Sony A7 III": {
+    tagline: "Professional mirrorless for serious creators",
+    price: "₹1600–₹2000 / day",
+    img: "https://images.unsplash.com/photo-1607462109225-6b64ae2dd3cb?w=400&auto=format&fit=crop",
+    reasons: [
+      "Full-frame sensor delivers stunning photo and 4K video quality",
+      "Blazing-fast autofocus with real-time eye tracking for subjects in motion",
+      "Dual card slots and 10fps burst — built to handle professional workloads"
+    ]
+  },
+  "Canon EOS 90D": {
+    tagline: "High-performance DSLR for advanced shooters",
+    price: "₹1200–₹1600 / day",
+    img: "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=400&auto=format&fit=crop",
+    reasons: [
+      "45MP APS-C sensor for incredible detail in both stills and video",
+      "Advanced dual-pixel CMOS autofocus system for smooth video tracking",
+      "Weather sealed body — reliable in challenging outdoor conditions"
+    ]
+  },
+  "Sony FX3": {
+    tagline: "Cinema-grade filmmaking in your hands",
+    price: "₹2200–₹3000 / day",
+    img: "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=400&auto=format&fit=crop",
+    reasons: [
+      "Full-frame Cinema Line sensor optimized for S-Cinetone and S-Log3 grading",
+      "All-directional handle with XLR audio for professional film production",
+      "Superb 4K 120fps slow motion and advanced autofocus for narrative work"
+    ]
+  },
+  "Canon EOS M50 Mark II": {
+    tagline: "Lightweight mirrorless for everyday creators",
+    price: "₹500–₹700 / day",
+    img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400&auto=format&fit=crop",
+    reasons: [
+      "Compact mirrorless body that fits in any bag — ideal for travel and events",
+      "Vari-angle touchscreen LCD for flexible shooting angles",
+      "Good 4K video and strong Wi-Fi connectivity for instant sharing"
+    ]
+  }
+};
+
+// ===== RECOMMENDATION LOGIC =====
+function getRecommendation() {
+  const use = quizAnswers[0];
+  const exp = quizAnswers[1];
+  const capture = quizAnswers[2];
+  const features = quizAnswers[3] || [];
+  const budget = quizAnswers[4];
+
+  const isLowBudget = budget === "₹200–₹500";
+  const isMidBudget = budget === "₹500–₹1000" || budget === "₹1000–₹2000";
+  const isHighBudget = budget === "Above ₹2000";
+  const isVideo = capture === "Videos" || use === "YouTube / Vlogging";
+  const isFilm = use === "Short films / filmmaking";
+  const isBeginner = exp === "Beginner";
+  const isAdvanced = exp === "Advanced";
+  const wantsPhoto = capture === "Photos";
+  const wantsBoth = capture === "Both";
+
+  if (isFilm && isAdvanced && isHighBudget) return "Sony FX3";
+  if (isFilm && (isHighBudget || isMidBudget)) return "Sony A7 III";
+  if (isVideo || use === "YouTube / Vlogging") return "Sony ZV-E10";
+  if (isAdvanced && wantsBoth && isHighBudget) return "Sony A7 III";
+  if (isAdvanced && isMidBudget) return "Canon EOS 90D";
+  if (isBeginner && wantsPhoto) return "Canon EOS 1500D";
+  if (isBeginner && isLowBudget) return "Canon EOS 1500D";
+  if (wantsBoth && isMidBudget) return "Canon EOS M50 Mark II";
+  if (isLowBudget) return "Canon EOS 1500D";
+  return "Sony ZV-E10";
+}
+
+// ===== PAGE ROUTING =====
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function requireLogin() {
+  if (currentUser) { showPage('quiz'); startQuiz(); }
+  else showPage('login');
+}
+
+// ===== AUTH =====
+function switchTab(t) {
+  document.getElementById('tab-signup').classList.toggle('active', t==='signup');
+  document.getElementById('tab-login').classList.toggle('active', t==='login');
+  document.getElementById('form-signup').style.display = t==='signup'?'block':'none';
+  document.getElementById('form-login').style.display = t==='login'?'block':'none';
+}
+
+function aadhaarFmt(v) {
+  v = v.replace(/\D/g,'').slice(0,12);
+  return v.replace(/(\d{4})(?=\d)/g,'$1 ').trim();
+}
+document.getElementById('reg-aadhaar').addEventListener('input', function(){
+  this.value = aadhaarFmt(this.value);
+});
+
+function showErr(id, show) {
+  document.getElementById(id).style.display = show ? 'block' : 'none';
+}
+
+function doSignup() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const phone = document.getElementById('reg-phone').value.trim();
+  const aadhaar = document.getElementById('reg-aadhaar').value.replace(/\s/g,'');
+  let ok = true;
+  showErr('err-name', !name); if(!name) ok=false;
+  showErr('err-email', !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)); if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) ok=false;
+  showErr('err-phone', !/^\d{10}$/.test(phone)); if(!/^\d{10}$/.test(phone)) ok=false;
+  showErr('err-aadhaar', aadhaar.length!==12); if(aadhaar.length!==12) ok=false;
+  if (!ok) return;
+  const users = JSON.parse(localStorage.getItem('lc_users')||'[]');
+  if (users.find(u=>u.email===email)) { showToast('Already registered','Use login tab or a different email.'); return; }
+  users.push({name,email,phone,aadhaar});
+  localStorage.setItem('lc_users', JSON.stringify(users));
+  currentUser = {name,email};
+  localStorage.setItem('lc_session', JSON.stringify(currentUser));
+  updateNav();
+  showToast('Welcome, '+name+'! 👋','Account created. Let\'s find your camera.');
+  setTimeout(()=>{ showPage('quiz'); startQuiz(); }, 800);
+}
+
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const phone = document.getElementById('login-phone').value.trim();
+  const users = JSON.parse(localStorage.getItem('lc_users')||'[]');
+  const user = users.find(u=>u.email===email && u.phone===phone);
+  if (!user) { showToast('Not found','Check your email & phone, or sign up.'); return; }
+  currentUser = {name:user.name, email:user.email};
+  localStorage.setItem('lc_session', JSON.stringify(currentUser));
+  updateNav();
+  showToast('Welcome back, '+user.name+'! 📷','Let\'s find your camera.');
+  setTimeout(()=>{ showPage('quiz'); startQuiz(); }, 800);
+}
+
+function logout() {
+  currentUser = null;
+  localStorage.removeItem('lc_session');
+  updateNav();
+  showPage('home');
+  showToast('Logged out','See you next time!');
+}
+
+function updateNav() {
+  const nu = document.getElementById('nav-user');
+  const nl = document.getElementById('nav-logout');
+  if (currentUser) {
+    nu.textContent = 'Hi, '+currentUser.name.split(' ')[0];
+    nu.style.display='inline';
+    nl.style.display='inline';
+  } else {
+    nu.style.display='none';
+    nl.style.display='none';
+  }
+}
+
+// ===== QUIZ =====
+function startQuiz() {
+  currentQ = 0;
+  quizAnswers = {};
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = questions[currentQ];
+  document.getElementById('quiz-step-label').textContent = `Question ${currentQ+1} of ${questions.length}`;
+  document.getElementById('quiz-progress').style.width = ((currentQ+1)/questions.length*100)+'%';
+  document.getElementById('q-text').textContent = q.q;
+  document.getElementById('quiz-hint').textContent = q.type==='multi' ? '(Select all that apply)' : '';
+  document.getElementById('btn-back').style.visibility = currentQ>0?'visible':'hidden';
+  document.getElementById('btn-next').textContent = currentQ===questions.length-1 ? 'Get Results ✦' : 'Next →';
+
+  const opts = document.getElementById('q-options');
+  opts.innerHTML = '';
+  const selected = quizAnswers[currentQ] || (q.type==='multi'?[]:'');
+
+  q.options.forEach((opt,i)=>{
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    const isSelected = q.type==='multi' ? (selected.includes(opt)) : selected===opt;
+    if(isSelected) btn.classList.add(q.type==='multi'?'multi-selected':'selected');
+    btn.innerHTML = `<span class="option-icon">${q.icons[i]||'•'}</span>${opt}`;
+    btn.onclick = () => selectOption(opt, q.type, btn);
+    opts.appendChild(btn);
+  });
+
+  const card = document.getElementById('question-card');
+  card.style.animation='none';card.offsetHeight;card.style.animation='scaleIn 0.4s ease';
+}
+
+function selectOption(val, type, btn) {
+  if (type === 'single') {
+    document.querySelectorAll('.option-btn').forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected');
+    quizAnswers[currentQ] = val;
+  } else {
+    btn.classList.toggle('multi-selected');
+    if (!quizAnswers[currentQ]) quizAnswers[currentQ] = [];
+    const idx = quizAnswers[currentQ].indexOf(val);
+    if (idx>-1) quizAnswers[currentQ].splice(idx,1);
+    else quizAnswers[currentQ].push(val);
+  }
+}
+
+function quizNext() {
+  const q = questions[currentQ];
+  const ans = quizAnswers[currentQ];
+  const hasAnswer = q.type==='multi' ? (ans && ans.length>0) : !!ans;
+  if (!hasAnswer) { showToast('Select an option','Please pick at least one choice to continue.'); return; }
+  if (currentQ === questions.length-1) { showResults(); return; }
+  currentQ++;
+  renderQuestion();
+}
+
+function quizBack() {
+  if (currentQ>0) { currentQ--; renderQuestion(); }
+}
+
+// ===== RESULTS =====
+function showResults() {
+  const camName = getRecommendation();
+  const cam = cameras[camName];
+
+  document.getElementById('result-name').textContent = camName;
+  document.getElementById('result-tagline').textContent = cam.tagline;
+  document.getElementById('result-price').textContent = '🏷️ ' + cam.price;
+  document.getElementById('result-img').src = cam.img;
+  document.getElementById('result-img').onerror = function(){
+    this.src='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="240" height="200"><rect fill="%231a1a3e" width="240" height="200" rx="12"/><text fill="%23f4a623" x="120" y="110" text-anchor="middle" font-size="16">'+encodeURIComponent(camName)+'</text></svg>';
+  };
+
+  const rEl = document.getElementById('result-reasons');
+  rEl.innerHTML = '';
+  cam.reasons.forEach((r,i)=>{
+    rEl.innerHTML += `<div class="reason"><div class="reason-num">${i+1}</div><div>${r}</div></div>`;
+  });
+
+  showPage('result');
+}
+
+function bookNow() {
+  document.getElementById('book-modal').classList.add('open');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// ===== TOAST =====
+function showToast(title, body) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-title').textContent = title;
+  document.getElementById('toast-body').textContent = body;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3500);
+}
+
+// ===== INIT =====
+(function init(){
+  const sess = localStorage.getItem('lc_session');
+  if (sess) { currentUser = JSON.parse(sess); updateNav(); }
+})();
+</script>
+</body>
+</html>
